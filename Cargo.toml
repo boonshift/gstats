@@ -1,0 +1,9 @@
+[package]
+name = "gstats"
+version = "0.1.0"
+authors = ["mantis78 <boon.tek@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+colored = "1.8"
+git2 = "0.8"
