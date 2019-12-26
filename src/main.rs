@@ -1,18 +1,18 @@
 use std::{env, fs, io, thread};
 use std::fs::{DirEntry, FileType};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::mpsc;
 use std::thread::JoinHandle;
-use std::time::Instant;
 
 use colored::Colorize;
 use git2::{DescribeFormatOptions, DescribeOptions, Repository, StatusOptions};
+use colored::control::set_override;
 
 struct GitStatResult {
     repo_name: String,
     is_dirty: bool,
+    in_sync: bool,
     branch: String,
     messages: String,
     desc: String,
@@ -20,6 +20,8 @@ struct GitStatResult {
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
+
+    set_override(true);
 
     let base_dir = match &args.get(1) {
         Some(v) => v,
@@ -62,8 +64,11 @@ fn pass_recv_to_printer(rx: Receiver<GitStatResult>) -> JoinHandle<()> {
             if r.is_dirty {
                 print!("{}", "**** ".red());
             }
+            if !r.in_sync {
+                print!("{}", "?!?! ".bright_magenta());
+            }
 
-            let branch = if r.branch != "refs/heads/master" { r.branch.as_str().cyan() } else { r.branch.as_str().green() };
+            let branch = if r.branch != "refs/heads/master".to_string() { r.branch.as_str().cyan() } else { r.branch.as_str().green() };
             println!("Received from {} [{} @ {}]: {}", r.repo_name, branch, r.desc.as_str().bright_purple(), r.messages);
         }
     });
@@ -96,18 +101,21 @@ fn explore_dir(dir: PathBuf, tx: Sender<GitStatResult>) {
     };
 
     let head = repo.head().unwrap();
-    let name = head.name().unwrap();
+    let name = head.name().unwrap().replace("refs/heads/", "");
     let mut messages = String::new();
     let mut is_dirty = true;
     if is_clean(&repo) {
         is_dirty = false;
     }
 
+    let in_sync = is_sync(&repo, &name, &mut messages);
+
     let desc = desc(&repo);
 
     let result = GitStatResult {
         repo_name: dir_path.to_string(),
         is_dirty,
+        in_sync,
         branch: name.to_string(),
         messages,
         desc,
@@ -118,20 +126,40 @@ fn explore_dir(dir: PathBuf, tx: Sender<GitStatResult>) {
 }
 
 fn desc(repo: &Repository) -> String {
-    let mut descOpts = DescribeOptions::new();
-    descOpts.describe_tags();
-    let describe = match repo.describe(&descOpts) {
+    let mut desc_opts = DescribeOptions::new();
+    desc_opts.describe_tags();
+    let describe = match repo.describe(&desc_opts) {
         Ok(describe) => describe,
-        Err(e) => return "N/A".to_string(),
+        Err(_) => return "N/A".to_string(),
     };
 
-    let mut descFmtOpts = DescribeFormatOptions::new();
-    descFmtOpts.abbreviated_size(0);
-    return describe.format(Some(&descFmtOpts)).unwrap();
+    let mut desc_fmt_opts = DescribeFormatOptions::new();
+    desc_fmt_opts.abbreviated_size(0);
+    return describe.format(Some(&desc_fmt_opts)).unwrap();
 }
 
 fn is_clean(repo: &Repository) -> bool {
     let mut status_options: StatusOptions = StatusOptions::new();
     let statuses = repo.statuses(Some(&mut status_options)).unwrap();
     return statuses.is_empty();
+}
+
+fn is_sync(repo: &Repository, branch_name: &String, messages: &mut String) -> bool {
+    let origin_oid = match repo.revparse(format!("origin/{}", branch_name).as_str()) {
+        Ok(r) => r.from().unwrap().id(),
+        Err(_) => {
+            messages.push_str(format!("origin/{} not found", branch_name).as_str());
+            return false
+        },
+    };
+
+    let cur_oid = match repo.revparse(branch_name) {
+        Ok(r) => r.from().unwrap().id(),
+        Err(_) => {
+            messages.push_str(format!("{} not found", branch_name).as_str());
+            return false
+        },
+    };
+
+    return origin_oid.eq(&cur_oid);
 }
