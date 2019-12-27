@@ -16,4 +16,4 @@ The secondary reason is of course for me to try out Rust. So, please do critique
 
 Install using [Rust Cargo](https://doc.rust-lang.org/cargo/commands/cargo-install.html).
 
-```cargo install --git  https://github.com/boonshift/gstats```
+```cargo install gstats```
