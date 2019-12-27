@@ -1,8 +1,17 @@
 [package]
 name = "gstats"
+description = "Summarizes repositories under a directory for developers."
+documentation = "https://github.com/boonshift/gstats"
+homepage = "https://github.com/boonshift/gstats"
+repository = "https://github.com/boonshift/gstats"
 version = "0.1.2"
-authors = ["mantis78 <boon.tek@gmail.com>"]
+authors = ["Boon Hian Tek <boon.tek@gmail.com>"]
+license = "Unlicense OR MIT"
+
 edition = "2019"
+
+[[bin]]
+name = "gstats"
 
 [dependencies]
 colored = "1.9"
