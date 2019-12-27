@@ -7,8 +7,7 @@ repository = "https://github.com/boonshift/gstats"
 version = "0.1.2"
 authors = ["Boon Hian Tek <boon.tek@gmail.com>"]
 license = "Unlicense OR MIT"
-
-edition = "2019"
+edition = "2018"
 
 [[bin]]
 name = "gstats"
