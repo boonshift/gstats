@@ -21,6 +21,7 @@ struct GitStatResult {
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
+    // Make sure it colors regardless of console or pipe etc.
     set_override(true);
 
     let base_dir = match &args.get(1) {
@@ -110,7 +111,7 @@ fn explore_dir(dir: PathBuf, tx: Sender<GitStatResult>) {
 
     let in_sync = is_sync(&repo, &name, &mut messages);
 
-    let desc = desc(&repo);
+    let desc = describe(&repo);
 
     let result = GitStatResult {
         repo_name: dir_path.to_string(),
@@ -125,7 +126,7 @@ fn explore_dir(dir: PathBuf, tx: Sender<GitStatResult>) {
     drop(tx);
 }
 
-fn desc(repo: &Repository) -> String {
+fn describe(repo: &Repository) -> String {
     let mut desc_opts = DescribeOptions::new();
     desc_opts.describe_tags();
     let describe = match repo.describe(&desc_opts) {
