@@ -3,6 +3,8 @@
 Simple Rust tool to get quick summary info on git repos showing latest tag, branch, state. I implemented this to help me work with a the not too small
 number of repositories as a result of Microservices.
 
+It basically shows information similar to those running "gst" on zsh using the git plugin, just for all immediate sub dirs.
+
 The secondary reason is of course for me to try out Rust. So, please do critique or suggest improvement for the code.
 
 ## Legend
