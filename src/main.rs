@@ -70,7 +70,7 @@ fn pass_recv_to_printer(rx: Receiver<GitStatResult>) -> JoinHandle<()> {
             }
 
             let branch = if r.branch != "refs/heads/master".to_string() { r.branch.as_str().cyan() } else { r.branch.as_str().green() };
-            println!("Received from {} [{} @ {}]: {}", r.repo_name, branch, r.desc.as_str().bright_purple(), r.messages);
+            println!("Stats of {} [{} @ {}]: {}", r.repo_name, branch, r.desc.as_str().bright_purple(), r.messages);
         }
     });
 }
