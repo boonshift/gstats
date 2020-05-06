@@ -1,3 +1,5 @@
+[![crates.io](https://img.shields.io/crates/v/gstats.svg)](https://crates.io/crates/gstats/)
+
 # gstats
 
 Simple Rust tool to get quick summary info on git repos showing latest tag, branch, state. I implemented this to help me work with a the not too small
