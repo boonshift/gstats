@@ -6,8 +6,8 @@ use std::sync::mpsc;
 use std::thread::JoinHandle;
 
 use colored::Colorize;
-use git2::{DescribeFormatOptions, DescribeOptions, Repository, StatusOptions};
 use colored::control::set_override;
+use git2::{DescribeFormatOptions, DescribeOptions, Repository, StatusOptions};
 
 struct GitStatResult {
     repo_name: String,
@@ -16,6 +16,11 @@ struct GitStatResult {
     branch: String,
     messages: String,
     desc: String,
+}
+
+struct ChildProcessingThread {
+    dir_name: String,
+    child: JoinHandle<()>,
 }
 
 fn main() -> io::Result<()> {
@@ -37,13 +42,14 @@ fn main() -> io::Result<()> {
 
     for e in dirs {
         let thread_tx = tx.clone();
+        let dir_name = e.path().to_str().unwrap().clone().to_string();
 
         let child = thread::spawn(move || {
             let path_buf = e.path();
             explore_dir(path_buf, thread_tx);
         });
 
-        children.push(child);
+        children.push(ChildProcessingThread { dir_name, child });
     }
     drop(tx);
 
@@ -51,7 +57,7 @@ fn main() -> io::Result<()> {
 
     // Wait for the threads to complete any remaining work
     for child in children {
-        child.join().expect("oops! the child thread panicked");
+        child.child.join().expect(format!("oops! the child[{}] thread panicked", child.dir_name).as_str());
     }
 
     let _ = printer.join();
@@ -101,7 +107,14 @@ fn explore_dir(dir: PathBuf, tx: Sender<GitStatResult>) {
         Err(e) => panic!("Failed to open: {}", e)
     };
 
-    let head = repo.head().unwrap();
+    let head = match repo.head() {
+        Ok(head) => head,
+        Err(_e) => {
+            drop(tx);
+            return;
+        }
+    };
+
     let name = head.name().unwrap().replace("refs/heads/", "");
     let mut messages = String::new();
     let mut is_dirty = true;
@@ -150,16 +163,16 @@ fn is_sync(repo: &Repository, branch_name: &String, messages: &mut String) -> bo
         Ok(r) => r.from().unwrap().id(),
         Err(_) => {
             messages.push_str(format!("origin/{} not found", branch_name).as_str());
-            return false
-        },
+            return false;
+        }
     };
 
     let cur_oid = match repo.revparse(branch_name) {
         Ok(r) => r.from().unwrap().id(),
         Err(_) => {
             messages.push_str(format!("{} not found", branch_name).as_str());
-            return false
-        },
+            return false;
+        }
     };
 
     return origin_oid.eq(&cur_oid);
