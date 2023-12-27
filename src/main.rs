@@ -42,7 +42,7 @@ fn main() -> io::Result<()> {
 
     for e in dirs {
         let thread_tx = tx.clone();
-        let dir_name = e.path().to_str().unwrap().clone().to_string();
+        let dir_name = e.path().to_str().unwrap().to_string();
 
         let child = thread::spawn(move || {
             let path_buf = e.path();
